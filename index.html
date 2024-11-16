@@ -567,6 +567,16 @@
             const form = event.target;
             const formData = new FormData(form);
 
+            const expiryDate = new Date(formData.get('expiryDate'));
+            const now = new Date();
+            const minExpiryDate = new Date();
+            minExpiryDate.setMonth(now.getMonth() + 6);
+
+            if (expiryDate < minExpiryDate) {
+                showToast('Passport expiry date must be at least 6 months from today.', 'error');
+                return;
+            }
+
             const applicationData = {
                 userId: currentUser.uid,
                 name: formData.get('name'),
@@ -614,10 +624,10 @@
                     <td contenteditable="true" onblur="handleUpdate('${app.id}', 'expiryDate', this.innerText)">${new Date(app.expiryDate).toLocaleDateString()}</td>
                     <td>
                         <select class="status-dropdown" onchange="handleUpdate('${app.id}', 'status', this.value)">
-                            <option value="Pending" ${app.status === 'Pending' ? 'selected' : ''}>Pending</option>
-                            <option value="Approved" ${app.status === 'Approved' ? 'selected' : ''}>Approved</option>
-                            <option value="Rejected" ${app.status === 'Rejected' ? 'selected' : ''}>Rejected</option>
-                        </select>
+    <option value="Pending" class="status-badge status-pending" ${app.status === 'Pending' ? 'selected' : ''}>Pending</option>
+    <option value="Approved" class="status-badge status-approved" ${app.status === 'Approved' ? 'selected' : ''}>Approved</option>
+    <option value="Rejected" class="status-badge status-rejected" ${app.status === 'Rejected' ? 'selected' : ''}>Rejected</option>
+</select>
                     </td>
                     <td>
                         <button onclick="handleDelete('${app.id}')" class="btn btn-danger">

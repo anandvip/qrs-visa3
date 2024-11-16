@@ -259,21 +259,22 @@
             font-size: 14px;
             font-weight: 500;
             display: inline-block;
+            text-align: center;
         }
 
         .status-pending {
-            background: var(--warning);
-            color: white;
+            background: var(--warning) !important;
+            color: white !important;
         }
 
         .status-approved {
-            background: var(--success);
-            color: white;
+            background: var(--success) !important;
+            color: white !important;
         }
 
         .status-rejected {
-            background: var(--danger);
-            color: white;
+            background: var(--danger) !important;
+            color: white !important;
         }
 
         /* Dropdown Styles for Editable Status */
@@ -287,6 +288,11 @@
             width: 100%;
             box-sizing: border-box;
             text-align: center;
+        }
+
+        select.status-dropdown:focus {
+            outline: none;
+            border: 1px solid var(--primary);
         }
 
         /* Loading State */

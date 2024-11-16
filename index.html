@@ -405,15 +405,11 @@
                     </div>
                     <div class="form-group">
                         <label for="passport">Passport Number</label>
-                        <input type="text" id="passport" name="passport" 
-                               pattern="[A-Z0-9]{8,}" required
-                               placeholder="e.g., AB1234567">
+                        <input type="text" id="passport" name="passport" pattern="[A-Z0-9]{8,}" required placeholder="e.g., AB1234567">
                     </div>
                     <div class="form-group">
                         <label for="phone">Phone Number</label>
-                        <input type="tel" id="phone" name="phone" 
-                               pattern="[0-9]{10}" required
-                               placeholder="10 digits">
+                        <input type="tel" id="phone" name="phone" pattern="[0-9]{10}" required placeholder="10 digits">
                     </div>
                     <div class="form-group">
                         <label for="expiryDate">Passport Expiry Date</label>
@@ -427,7 +423,7 @@
             </form>
         </section>
 
-        <input type="text" id="searchInput" class="search-input" placeholder="Search applications...">
+        <input type="text" id="searchInput" class="search-input" placeholder="Search applications..." onkeyup="handleSearch()">
 
         <div class="table-container">
             <table>
@@ -457,7 +453,6 @@
     <!-- Scripts -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/toastify-js/1.12.0/toastify.js"></script>
     <script src="https://accounts.google.com/gsi/client" async defer></script>
-
     <script type="module">
         // Firebase Imports
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.0.2/firebase-app.js";
@@ -466,7 +461,7 @@
             GoogleAuthProvider, 
             signInWithPopup, 
             signOut, 
-            signInWithCredential
+            onAuthStateChanged 
         } from "https://www.gstatic.com/firebasejs/11.0.2/firebase-auth.js";
         import { 
             getFirestore,
@@ -476,6 +471,7 @@
             where,
             orderBy,
             onSnapshot,
+            updateDoc,
             deleteDoc,
             doc
         } from "https://www.gstatic.com/firebasejs/11.0.2/firebase-firestore.js";
@@ -501,7 +497,7 @@
         let applications = [];
 
         // Auth state observer
-        auth.onAuthStateChanged((user) => {
+        onAuthStateChanged(auth, (user) => {
             currentUser = user;
             if (user) {
                 document.getElementById('loginScreen').style.display = 'none';
@@ -518,10 +514,7 @@
         function initializeFirestore() {
             const applicationsRef = collection(db, 'applications');
             // Create a compound query
-            const q = query(applicationsRef,
-                where('userId', '==', currentUser.uid),
-                orderBy('submittedDate', 'desc')
-            );
+            const q = query(applicationsRef, where('userId', '==', currentUser.uid), orderBy('submittedDate', 'desc'));
 
             // Real-time listener
             onSnapshot(q, (snapshot) => {
@@ -538,46 +531,6 @@
                 showToast('Error loading applications: ' + error.message, 'error');
             });
         }
-
-        // Authentication functions
-        window.handleGoogleSignIn = async () => {
-            try {
-                showLoading(true);
-                await signInWithPopup(auth, provider);
-                showToast('Signed in successfully', 'success');
-            } catch (error) {
-                console.error('Sign-in error:', error);
-                showToast('Sign-in failed: ' + error.message, 'error');
-            } finally {
-                showLoading(false);
-            }
-        };
-
-        window.handleSignOut = async () => {
-            try {
-                showLoading(true);
-                await signOut(auth);
-                showToast('Signed out successfully', 'success');
-            } catch (error) {
-                console.error('Sign-out error:', error);
-                showToast('Sign-out failed: ' + error.message, 'error');
-            } finally {
-                showLoading(false);
-            }
-        };
-
-        // One-tap sign-in handler
-        window.handleCredentialResponse = (response) => {
-            const credential = GoogleAuthProvider.credential(response.credential);
-            signInWithCredential(auth, credential)
-                .then(() => {
-                    showToast('Signed in successfully', 'success');
-                })
-                .catch((error) => {
-                    console.error('One-tap sign-in error:', error);
-                    showToast('Sign-in failed: ' + error.message, 'error');
-                });
-        };
 
         // Update user profile UI
         function updateUserProfile(user) {
@@ -599,12 +552,6 @@
             event.preventDefault();
             const form = event.target;
             const formData = new FormData(form);
-
-            // Validate expiry date
-            if (!validateExpiryDate(formData.get('expiryDate'))) {
-                showToast('Invalid passport expiry date', 'error');
-                return;
-            }
 
             const applicationData = {
                 userId: currentUser.uid,
@@ -630,18 +577,6 @@
             }
         };
 
-        // Date validation
-        function validateExpiryDate(dateString) {
-            const expiryDate = new Date(dateString);
-            const now = new Date();
-            const minDate = new Date();
-            minDate.setMonth(now.getMonth() + 6);
-            const maxDate = new Date();
-            maxDate.setFullYear(now.getFullYear() + 10);
-
-            return expiryDate >= minDate && expiryDate <= maxDate;
-        }
-
         // Render applications table
         function renderApplications() {
             const tbody = document.getElementById('applicationsTable');
@@ -662,7 +597,7 @@
                     <td contenteditable="true" onblur="updateApplication('${app.id}', 'email', this.innerText)">${app.email}</td>
                     <td contenteditable="true" onblur="updateApplication('${app.id}', 'phone', this.innerText)">${app.phone}</td>
                     <td contenteditable="true" onblur="updateApplication('${app.id}', 'passport', this.innerText)">${app.passport}</td>
-                    <td contenteditable="true" onblur="updateApplication('${app.id}', 'expiryDate', this.innerText)">${new Date(app.expiryDate).toLocaleDateString()}</td>
+                    <td contenteditable="true" onblur="updateApplication('${app.id}', 'expiryDate', this.innerText)">${app.expiryDate}</td>
                     <td>
                         <select class="status-dropdown" onchange="updateApplication('${app.id}', 'status', this.value)">
                             <option value="Pending" ${app.status === 'Pending' ? 'selected' : ''}>Pending</option>
@@ -679,8 +614,8 @@
             `).join('');
         }
 
-        // Update application field
-        async function updateApplication(id, field, value) {
+        // Update application function
+        window.updateApplication = async (id, field, value) => {
             try {
                 const applicationRef = doc(db, 'applications', id);
                 await updateDoc(applicationRef, { [field]: value });
@@ -689,9 +624,9 @@
                 console.error('Update error:', error);
                 showToast('Error updating application: ' + error.message, 'error');
             }
-        }
+        };
 
-        // Delete application
+        // Delete application function
         window.handleDelete = async (id) => {
             if (!confirm('Are you sure you want to delete this application?')) {
                 return;
@@ -709,50 +644,27 @@
             }
         };
 
-        // Theme management
-        window.toggleTheme = () => {
-            const currentTheme = document.documentElement.getAttribute('data-theme');
-            const newTheme = currentTheme === 'light' ? 'dark' : 'light';
-            document.documentElement.setAttribute('data-theme', newTheme);
-            localStorage.setItem('theme', newTheme);
-            updateThemeIcon(newTheme);
+        // Sorting functionality
+        window.sortTable = (field) => {
+            applications.sort((a, b) => {
+                if (a[field] < b[field]) return -1;
+                if (a[field] > b[field]) return 1;
+                return 0;
+            });
+            renderApplications();
         };
 
-        function updateThemeIcon(theme) {
-            const icon = document.querySelector('.theme-switcher i');
-            icon.className = `fas ${theme === 'light' ? 'fa-moon' : 'fa-sun'}`;
-        }
-
-        // Utility functions
-        function showToast(message, type = 'info') {
-            Toastify({
-                text: message,
-                duration: 3000,
-                gravity: "top",
-                position: "right",
-                className: `toast-${type}`,
-                stopOnFocus: true,
-                close: true
-            }).showToast();
-        }
-
-        function showLoading(show = true) {
-            document.querySelector('.loading-overlay').style.display = 
-                show ? 'flex' : 'none';
-        }
-
         // Search functionality
-        document.getElementById('searchInput').addEventListener('input', (e) => {
-            const searchTerm = e.target.value.toLowerCase();
-            const filteredApplications = applications.filter(app =>
+        window.handleSearch = () => {
+            const searchTerm = document.getElementById('searchInput').value.toLowerCase();
+            const filteredApplications = applications.filter(app => 
                 app.name.toLowerCase().includes(searchTerm) ||
                 app.email.toLowerCase().includes(searchTerm) ||
-                app.phone.toLowerCase().includes(searchTerm) ||
-                app.passport.toLowerCase().includes(searchTerm) ||
-                app.status.toLowerCase().includes(searchTerm)
+                app.phone.includes(searchTerm) ||
+                app.passport.toLowerCase().includes(searchTerm)
             );
             renderFilteredApplications(filteredApplications);
-        });
+        };
 
         function renderFilteredApplications(filteredApplications) {
             const tbody = document.getElementById('applicationsTable');
@@ -773,7 +685,7 @@
                     <td contenteditable="true" onblur="updateApplication('${app.id}', 'email', this.innerText)">${app.email}</td>
                     <td contenteditable="true" onblur="updateApplication('${app.id}', 'phone', this.innerText)">${app.phone}</td>
                     <td contenteditable="true" onblur="updateApplication('${app.id}', 'passport', this.innerText)">${app.passport}</td>
-                    <td contenteditable="true" onblur="updateApplication('${app.id}', 'expiryDate', this.innerText)">${new Date(app.expiryDate).toLocaleDateString()}</td>
+                    <td contenteditable="true" onblur="updateApplication('${app.id}', 'expiryDate', this.innerText)">${app.expiryDate}</td>
                     <td>
                         <select class="status-dropdown" onchange="updateApplication('${app.id}', 'status', this.value)">
                             <option value="Pending" ${app.status === 'Pending' ? 'selected' : ''}>Pending</option>
@@ -790,6 +702,37 @@
             `).join('');
         }
 
+        // Utility functions
+        function showToast(message, type = 'info') {
+            Toastify({
+                text: message,
+                duration: 3000,
+                gravity: "top",
+                position: "right",
+                className: `toast-${type}`,
+                stopOnFocus: true,
+                close: true
+            }).showToast();
+        }
+
+        function showLoading(show = true) {
+            document.querySelector('.loading-overlay').style.display = show ? 'flex' : 'none';
+        }
+
+        // Theme management
+        window.toggleTheme = () => {
+            const currentTheme = document.documentElement.getAttribute('data-theme');
+            const newTheme = currentTheme === 'light' ? 'dark' : 'light';
+            document.documentElement.setAttribute('data-theme', newTheme);
+            localStorage.setItem('theme', newTheme);
+            updateThemeIcon(newTheme);
+        };
+
+        function updateThemeIcon(theme) {
+            const icon = document.querySelector('.theme-switcher i');
+            icon.className = `fas ${theme === 'light' ? 'fa-moon' : 'fa-sun'}`;
+        }
+
         // Initialize theme on load
         document.addEventListener('DOMContentLoaded', () => {
             const savedTheme = localStorage.getItem('theme') || 'light';
@@ -798,7 +741,16 @@
 
             // Add click handler for Google sign-in button
             document.getElementById('googleSignInButton')
-                .addEventListener('click', handleGoogleSignIn);
+                .addEventListener('click', () => {
+                    signInWithPopup(auth, provider)
+                        .then((result) => {
+                            showToast('Signed in successfully', 'success');
+                        })
+                        .catch((error) => {
+                            console.error('Sign-in error:', error);
+                            showToast('Sign-in failed: ' + error.message, 'error');
+                        });
+                });
         });
     </script>
 </body>

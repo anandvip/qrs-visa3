@@ -547,6 +547,17 @@
             `;
         }
 
+        // Sign out handler
+        window.handleSignOut = async () => {
+            try {
+                await signOut(auth);
+                showToast('Signed out successfully', 'success');
+            } catch (error) {
+                console.error('Sign-out error:', error);
+                showToast('Sign-out failed: ' + error.message, 'error');
+            }
+        };
+
         // Form submission handler
         window.handleSubmit = async (event) => {
             event.preventDefault();
@@ -593,13 +604,13 @@
 
             tbody.innerHTML = applications.map(app => `
                 <tr>
-                    <td contenteditable="true" onblur="updateApplication('${app.id}', 'name', this.innerText)">${app.name}</td>
-                    <td contenteditable="true" onblur="updateApplication('${app.id}', 'email', this.innerText)">${app.email}</td>
-                    <td contenteditable="true" onblur="updateApplication('${app.id}', 'phone', this.innerText)">${app.phone}</td>
-                    <td contenteditable="true" onblur="updateApplication('${app.id}', 'passport', this.innerText)">${app.passport}</td>
-                    <td contenteditable="true" onblur="updateApplication('${app.id}', 'expiryDate', this.innerText)">${app.expiryDate}</td>
+                    <td contenteditable="true" onblur="handleUpdate('${app.id}', 'name', this.innerText)">${app.name}</td>
+                    <td contenteditable="true" onblur="handleUpdate('${app.id}', 'email', this.innerText)">${app.email}</td>
+                    <td contenteditable="true" onblur="handleUpdate('${app.id}', 'phone', this.innerText)">${app.phone}</td>
+                    <td contenteditable="true" onblur="handleUpdate('${app.id}', 'passport', this.innerText)">${app.passport}</td>
+                    <td contenteditable="true" onblur="handleUpdate('${app.id}', 'expiryDate', this.innerText)">${new Date(app.expiryDate).toLocaleDateString()}</td>
                     <td>
-                        <select class="status-dropdown" onchange="updateApplication('${app.id}', 'status', this.value)">
+                        <select class="status-dropdown" onchange="handleUpdate('${app.id}', 'status', this.value)">
                             <option value="Pending" ${app.status === 'Pending' ? 'selected' : ''}>Pending</option>
                             <option value="Approved" ${app.status === 'Approved' ? 'selected' : ''}>Approved</option>
                             <option value="Rejected" ${app.status === 'Rejected' ? 'selected' : ''}>Rejected</option>
@@ -614,8 +625,8 @@
             `).join('');
         }
 
-        // Update application function
-        window.updateApplication = async (id, field, value) => {
+        // Handle update to Firestore
+        window.handleUpdate = async (id, field, value) => {
             try {
                 const applicationRef = doc(db, 'applications', id);
                 await updateDoc(applicationRef, { [field]: value });
@@ -626,7 +637,7 @@
             }
         };
 
-        // Delete application function
+        // Handle delete from Firestore
         window.handleDelete = async (id) => {
             if (!confirm('Are you sure you want to delete this application?')) {
                 return;
@@ -644,28 +655,19 @@
             }
         };
 
-        // Sorting functionality
-        window.sortTable = (field) => {
-            applications.sort((a, b) => {
-                if (a[field] < b[field]) return -1;
-                if (a[field] > b[field]) return 1;
-                return 0;
-            });
-            renderApplications();
-        };
-
-        // Search functionality
+        // Handle search
         window.handleSearch = () => {
-            const searchTerm = document.getElementById('searchInput').value.toLowerCase();
-            const filteredApplications = applications.filter(app => 
-                app.name.toLowerCase().includes(searchTerm) ||
-                app.email.toLowerCase().includes(searchTerm) ||
-                app.phone.includes(searchTerm) ||
-                app.passport.toLowerCase().includes(searchTerm)
+            const query = document.getElementById('searchInput').value.toLowerCase();
+            const filteredApplications = applications.filter(app =>
+                app.name.toLowerCase().includes(query) ||
+                app.email.toLowerCase().includes(query) ||
+                app.phone.includes(query) ||
+                app.passport.toLowerCase().includes(query)
             );
             renderFilteredApplications(filteredApplications);
         };
 
+        // Render filtered applications
         function renderFilteredApplications(filteredApplications) {
             const tbody = document.getElementById('applicationsTable');
             if (filteredApplications.length === 0) {
@@ -681,13 +683,13 @@
 
             tbody.innerHTML = filteredApplications.map(app => `
                 <tr>
-                    <td contenteditable="true" onblur="updateApplication('${app.id}', 'name', this.innerText)">${app.name}</td>
-                    <td contenteditable="true" onblur="updateApplication('${app.id}', 'email', this.innerText)">${app.email}</td>
-                    <td contenteditable="true" onblur="updateApplication('${app.id}', 'phone', this.innerText)">${app.phone}</td>
-                    <td contenteditable="true" onblur="updateApplication('${app.id}', 'passport', this.innerText)">${app.passport}</td>
-                    <td contenteditable="true" onblur="updateApplication('${app.id}', 'expiryDate', this.innerText)">${app.expiryDate}</td>
+                    <td contenteditable="true" onblur="handleUpdate('${app.id}', 'name', this.innerText)">${app.name}</td>
+                    <td contenteditable="true" onblur="handleUpdate('${app.id}', 'email', this.innerText)">${app.email}</td>
+                    <td contenteditable="true" onblur="handleUpdate('${app.id}', 'phone', this.innerText)">${app.phone}</td>
+                    <td contenteditable="true" onblur="handleUpdate('${app.id}', 'passport', this.innerText)">${app.passport}</td>
+                    <td contenteditable="true" onblur="handleUpdate('${app.id}', 'expiryDate', this.innerText)">${new Date(app.expiryDate).toLocaleDateString()}</td>
                     <td>
-                        <select class="status-dropdown" onchange="updateApplication('${app.id}', 'status', this.value)">
+                        <select class="status-dropdown" onchange="handleUpdate('${app.id}', 'status', this.value)">
                             <option value="Pending" ${app.status === 'Pending' ? 'selected' : ''}>Pending</option>
                             <option value="Approved" ${app.status === 'Approved' ? 'selected' : ''}>Approved</option>
                             <option value="Rejected" ${app.status === 'Rejected' ? 'selected' : ''}>Rejected</option>
@@ -701,6 +703,20 @@
                 </tr>
             `).join('');
         }
+
+        // Handle sorting the table
+        window.sortTable = (field) => {
+            const sortedApplications = [...applications].sort((a, b) => {
+                if (a[field] < b[field]) {
+                    return -1;
+                }
+                if (a[field] > b[field]) {
+                    return 1;
+                }
+                return 0;
+            });
+            renderFilteredApplications(sortedApplications);
+        };
 
         // Utility functions
         function showToast(message, type = 'info') {
@@ -716,8 +732,31 @@
         }
 
         function showLoading(show = true) {
-            document.querySelector('.loading-overlay').style.display = show ? 'flex' : 'none';
+            document.querySelector('.loading-overlay').style.display = 
+                show ? 'flex' : 'none';
         }
+
+        // Initialize theme on load
+        document.addEventListener('DOMContentLoaded', () => {
+            const savedTheme = localStorage.getItem('theme') || 'light';
+            document.documentElement.setAttribute('data-theme', savedTheme);
+            updateThemeIcon(savedTheme);
+
+            // Add click handler for Google sign-in button
+            document.getElementById('googleSignInButton')
+                .addEventListener('click', handleGoogleSignIn);
+        });
+
+        // Google sign-in handler
+        window.handleGoogleSignIn = async () => {
+            try {
+                await signInWithPopup(auth, provider);
+                showToast('Signed in successfully', 'success');
+            } catch (error) {
+                console.error('Sign-in error:', error);
+                showToast('Sign-in failed: ' + error.message, 'error');
+            }
+        };
 
         // Theme management
         window.toggleTheme = () => {
@@ -732,26 +771,6 @@
             const icon = document.querySelector('.theme-switcher i');
             icon.className = `fas ${theme === 'light' ? 'fa-moon' : 'fa-sun'}`;
         }
-
-        // Initialize theme on load
-        document.addEventListener('DOMContentLoaded', () => {
-            const savedTheme = localStorage.getItem('theme') || 'light';
-            document.documentElement.setAttribute('data-theme', savedTheme);
-            updateThemeIcon(savedTheme);
-
-            // Add click handler for Google sign-in button
-            document.getElementById('googleSignInButton')
-                .addEventListener('click', () => {
-                    signInWithPopup(auth, provider)
-                        .then((result) => {
-                            showToast('Signed in successfully', 'success');
-                        })
-                        .catch((error) => {
-                            console.error('Sign-in error:', error);
-                            showToast('Sign-in failed: ' + error.message, 'error');
-                        });
-                });
-        });
     </script>
 </body>
 </html>

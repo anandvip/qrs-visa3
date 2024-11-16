@@ -254,10 +254,11 @@
 
         /* Status Badges */
         .status-badge {
-            padding: 4px 12px;
+            padding: 8px 16px;
             border-radius: 999px;
             font-size: 14px;
             font-weight: 500;
+            display: inline-block;
         }
 
         .status-pending {
@@ -277,14 +278,15 @@
 
         /* Dropdown Styles for Editable Status */
         .status-dropdown {
-            border: 1px solid var(--border);
-            background: var(--bg-secondary);
+            border: none;
+            background: none;
             color: var(--text-primary);
             font-size: 14px;
             padding: 8px;
-            border-radius: 4px;
+            border-radius: 999px;
             width: 100%;
             box-sizing: border-box;
+            text-align: center;
         }
 
         /* Loading State */
@@ -623,11 +625,11 @@
                     <td contenteditable="true" onblur="handleUpdate('${app.id}', 'passport', this.innerText)">${app.passport}</td>
                     <td contenteditable="true" onblur="handleUpdate('${app.id}', 'expiryDate', this.innerText)">${new Date(app.expiryDate).toLocaleDateString()}</td>
                     <td>
-                        <select class="status-dropdown" onchange="handleUpdate('${app.id}', 'status', this.value)">
-    <option value="Pending" class="status-badge status-pending" ${app.status === 'Pending' ? 'selected' : ''}>Pending</option>
-    <option value="Approved" class="status-badge status-approved" ${app.status === 'Approved' ? 'selected' : ''}>Approved</option>
-    <option value="Rejected" class="status-badge status-rejected" ${app.status === 'Rejected' ? 'selected' : ''}>Rejected</option>
-</select>
+                        <select class="status-dropdown status-badge status-${app.status.toLowerCase()}" onchange="handleUpdate('${app.id}', 'status', this.value)">
+                            <option value="Pending" class="status-badge status-pending" ${app.status === 'Pending' ? 'selected' : ''}>Pending</option>
+                            <option value="Approved" class="status-badge status-approved" ${app.status === 'Approved' ? 'selected' : ''}>Approved</option>
+                            <option value="Rejected" class="status-badge status-rejected" ${app.status === 'Rejected' ? 'selected' : ''}>Rejected</option>
+                        </select>
                     </td>
                     <td>
                         <button onclick="handleDelete('${app.id}')" class="btn btn-danger">
@@ -702,10 +704,10 @@
                     <td contenteditable="true" onblur="handleUpdate('${app.id}', 'passport', this.innerText)">${app.passport}</td>
                     <td contenteditable="true" onblur="handleUpdate('${app.id}', 'expiryDate', this.innerText)">${new Date(app.expiryDate).toLocaleDateString()}</td>
                     <td>
-                        <select class="status-dropdown" onchange="handleUpdate('${app.id}', 'status', this.value)">
-                            <option value="Pending" ${app.status === 'Pending' ? 'selected' : ''}>Pending</option>
-                            <option value="Approved" ${app.status === 'Approved' ? 'selected' : ''}>Approved</option>
-                            <option value="Rejected" ${app.status === 'Rejected' ? 'selected' : ''}>Rejected</option>
+                        <select class="status-dropdown status-badge status-${app.status.toLowerCase()}" onchange="handleUpdate('${app.id}', 'status', this.value)">
+                            <option value="Pending" class="status-badge status-pending" ${app.status === 'Pending' ? 'selected' : ''}>Pending</option>
+                            <option value="Approved" class="status-badge status-approved" ${app.status === 'Approved' ? 'selected' : ''}>Approved</option>
+                            <option value="Rejected" class="status-badge status-rejected" ${app.status === 'Rejected' ? 'selected' : ''}>Rejected</option>
                         </select>
                     </td>
                     <td>
